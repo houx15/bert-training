@@ -12,6 +12,7 @@ from train import OpinionModel
 from predict import OpinionPredict
 from configs import *
 
+
 def run(config):
     dataset_dir = os.path.join(dataset_base, f"topic-{config.topic}")
     data_process = DataProcess(
@@ -37,7 +38,6 @@ def run(config):
         total_df=total_df,
         src_type="weibo",
         max_length=config.max_length,
-        batch_size=config.batch_size,
     )
 
     training_args = {
@@ -53,8 +53,8 @@ def run(config):
         opinion_model.prod_train(
             os.path.join(output_dir_base, config.topic),
             logging_dir=os.path.join(log_dir_base, config.topic),
-            args=training_args
-            )
+            args=training_args,
+        )
     else:
         for i in range(config.repeat_times):
             model_path = opinion_model.train(
@@ -74,7 +74,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--topic", type=str)
     parser.add_argument("--task_type", type=str, default="binary")
-    parser.add_argument("--base_model", type=str, default="base_model/hfl/chinese-roberta-wwm-ext-large")
+    parser.add_argument(
+        "--base_model", type=str, default="hfl/chinese-roberta-wwm-ext-large"
+    )
     parser.add_argument("--max_length", type=int, default=256)
     parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--lr", type=float, default=5e-5)

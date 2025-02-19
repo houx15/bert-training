@@ -119,7 +119,6 @@ class OpinionModel(object):
         self.hp_space_optuna = hp_space_optuna
         self.model_path_for_evaluation = None
 
-
     def tokenize(self, texts, labels, task_name):
         from nlp import Dataset
 
@@ -188,7 +187,6 @@ class OpinionModel(object):
         acc = accuracy_score(labels, preds)
         return {"accuracy": acc}
 
-
     def regression_metrics_compute(self, eval_pred, compute_result):
         preds = (
             eval_pred.predictions[0]
@@ -227,7 +225,15 @@ class OpinionModel(object):
             "warmup_steps": trial.suggest_categorical(
                 "warmup_steps", [0, 20, 30, 50, 100, 200]
             ),
-            "learning_rate": trial.suggest_float("learning_rate", 1e-4, 5e-3, log=True),
+            # "learning_rate": trial.suggest_float("learning_rate", 1e-4, 5e-3, log=True),
+            "learning_rate": trial.suggest_categorical(
+                "learning_rate",
+                [
+                    1e-5,
+                    1e-4,
+                    1e-3,
+                ],
+            ),
             "num_train_epochs": trial.suggest_int("num_train_epochs", 5, 15, log=True),
             "per_device_train_batch_size": trial.suggest_categorical(
                 "per_device_train_batch_size", [8, 16, 32]
@@ -258,7 +264,6 @@ class OpinionModel(object):
 
         arg_cls = TrainingArguments
         train_cls = Trainer
-
 
         training_args = arg_cls(
             output_dir=output_dir,
