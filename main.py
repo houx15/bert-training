@@ -15,7 +15,7 @@ def run(config):
     output_dir_base = "output/"
     log_dir_base = "logs/"
 
-    dataset_dir = f"ground_truth/{config.topic}"
+    dataset_dir = f"ground_truth/topic-{config.topic}"
 
     data_process = DataProcess(
         dataset_dir=dataset_dir,
