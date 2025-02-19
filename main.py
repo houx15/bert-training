@@ -10,13 +10,10 @@ import pandas as pd
 from data_preprocess import DataProcess
 from train import OpinionModel
 from predict import OpinionPredict
+from configs import *
 
 def run(config):
-    output_dir_base = "output/"
-    log_dir_base = "logs/"
-
-    dataset_dir = f"ground_truth/{config.topic}"
-
+    dataset_dir = os.path.join(dataset_base, f"topic-{config.topic}")
     data_process = DataProcess(
         dataset_dir=dataset_dir,
         dataset_file=f"{config.topic}_llm_result.parquet",
