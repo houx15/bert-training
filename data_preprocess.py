@@ -18,6 +18,7 @@ class DataProcess(object):
     def __init__(
         self,
         dataset_dir: str,
+        output_dir: str,
         dataset_file: str,
         task_type: str,
         src_type: str = "weibo",
@@ -38,9 +39,11 @@ class DataProcess(object):
         # }
         import os
 
-        self.dataset_dir = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), dataset_dir
-        )
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+        self.dataset_dir = dataset_dir
+        self.output_dir = output_dir
         self.dataset_file = dataset_file
         self.task_type = task_type  # task_map[task_type]
         self.src_type = src_type
@@ -135,23 +138,35 @@ class DataProcess(object):
         return df_train, df_val, df_test
 
     def save_df(self, train_df, validate_df, test_df, total_df):
-        train_df.to_csv(f"{self.dataset_dir}train-{self.task_type}.csv", index=False)
-        validate_df.to_csv(
-            f"{self.dataset_dir}validate-{self.task_type}.csv", index=False
+        train_df.to_csv(
+            os.path.join(self.output_dir, f"train-{self.task_type}.csv"), index=False
         )
-        test_df.to_csv(f"{self.dataset_dir}test-{self.task_type}.csv", index=False)
-        total_df.to_csv(f"{self.dataset_dir}total-{self.task_type}.csv", index=False)
+        validate_df.to_csv(
+            os.path.join(self.output_dir, f"validate-{self.task_type}.csv"), index=False
+        )
+        test_df.to_csv(
+            os.path.join(self.output_dir, f"test-{self.task_type}.csv"), index=False
+        )
+        total_df.to_csv(
+            os.path.join(self.output_dir, f"total-{self.task_type}.csv"), index=False
+        )
         print("saving finished")
         return True
 
     def get_cached_df(self):
         try:
-            train_df = pd.read_csv(f"{self.dataset_dir}train-{self.task_type}.csv")
-            validate_df = pd.read_csv(
-                f"{self.dataset_dir}validate-{self.task_type}.csv"
+            train_df = pd.read_csv(
+                os.path.join(self.output_dir, f"train-{self.task_type}.csv")
             )
-            test_df = pd.read_csv(f"{self.dataset_dir}test-{self.task_type}.csv")
-            total_df = pd.read_csv(f"{self.dataset_dir}total-{self.task_type}.csv")
+            validate_df = pd.read_csv(
+                os.path.join(self.output_dir, f"validate-{self.task_type}.csv")
+            )
+            test_df = pd.read_csv(
+                os.path.join(self.output_dir, f"test-{self.task_type}.csv")
+            )
+            total_df = pd.read_csv(
+                os.path.join(self.output_dir, f"total-{self.task_type}.csv")
+            )
             return train_df, validate_df, test_df, total_df
         except:
             return None, None, None, None
@@ -166,12 +181,13 @@ class DataProcess(object):
             train_df, validate_df, test_df = self.split_df_by_label(dataset_df)
             return train_df, validate_df, test_df, dataset_df
         return dataset_df
-    
+
     def dataset_handler(self, dataset_file):
         if not dataset_file.endswith(".parquet"):
             raise ValueError("The dataset file should be a parquet file.")
         dataset_path = os.path.join(self.dataset_dir, dataset_file)
-        dataset_df = pd.read_parquet(dataset_path)
+        dataset_df = pd.read_parquet(dataset_path, engine="fastparquet")
+        dataset_df = dataset_df[dataset_df["common_support"] == True]
         dataset_df = dataset_df[["weibo_id", "text", "opinion"]]
         namemapping = {
             "weibo_id": "id",
@@ -200,9 +216,7 @@ class DataProcess(object):
             None,
         )
         if self.force_update is False:
-            train_df, validate_df, test_df, dataset_df = (
-                self.get_cached_df()
-            )
+            train_df, validate_df, test_df, dataset_df = self.get_cached_df()
 
         if train_df is None:
             dataset_df = self.dataset_handler(self.dataset_file)

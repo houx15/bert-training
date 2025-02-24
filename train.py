@@ -1,6 +1,6 @@
 """
 author: Hou Yuxin
-date: 2022-06-17
+date: 2025-02-24
 """
 
 import numpy as np
@@ -172,20 +172,23 @@ class OpinionModel(object):
         dataset = dataset.shuffle()
         return dataset
 
-    def binary_metrics_compute(self, pred):
-        labels = pred.label_ids
+    def binary_metrics_compute(self, eval_pred, compute_result):
+        labels = eval_pred.label_ids
         preds = (
-            pred.predictions[0]
-            if isinstance(pred.predictions, tuple)
-            else pred.predictions
+            eval_pred.predictions[0]
+            if isinstance(eval_pred.predictions, tuple)
+            else eval_pred.predictions
         )
         preds = np.argmax(preds, axis=1)
         # use when this is 0-1 classification task
-        precision, recall, f1, _ = precision_recall_fscore_support(
-            labels, preds, average="binary"
-        )
-        acc = accuracy_score(labels, preds)
-        return {"accuracy": acc}
+        accuracy_metric.update(preds, labels)
+        if compute_result:
+            return accuracy_metric.compute()
+        # precision, recall, f1, _ = precision_recall_fscore_support(
+        #     labels, preds, average="binary"
+        # )
+        # acc = accuracy_score(labels, preds)
+        # return {"accuracy": acc}
 
     def regression_metrics_compute(self, eval_pred, compute_result):
         preds = (

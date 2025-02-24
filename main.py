@@ -14,10 +14,12 @@ from configs import *
 
 
 def run(config):
-    dataset_dir = os.path.join(dataset_base, f"topic-{config.topic}")
+    dataset_dir = dataset_base  # os.path.join(dataset_base, f"topic-{config.topic}")
+    output_dir = os.path.join(dataset_base, f"topic-{config.topic}")
     data_process = DataProcess(
         dataset_dir=dataset_dir,
-        dataset_file=f"{config.topic}_llm_result.parquet",
+        output_dir=output_dir,
+        dataset_file=f"{config.topic}_merged.parquet",
         task_type=config.task_type,
         src_type="weibo",
         force_update=config.force_update,
