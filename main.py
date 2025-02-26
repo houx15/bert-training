@@ -14,6 +14,9 @@ from configs import *
 
 
 def run(config):
+    if not os.path.exists(output_dir_base):
+        os.makedirs(output_dir_base)
+
     dataset_dir = dataset_base  # os.path.join(dataset_base, f"topic-{config.topic}")
     output_dir = os.path.join(dataset_base, f"topic-{config.topic}")
     data_process = DataProcess(

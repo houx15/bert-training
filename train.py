@@ -179,7 +179,7 @@ class OpinionModel(object):
             if isinstance(eval_pred.predictions, tuple)
             else eval_pred.predictions
         )
-        preds = np.argmax(preds, axis=1)
+        preds = np.argmax(preds.cpu().numpy(), axis=1)
         # use when this is 0-1 classification task
         accuracy_metric.update(preds, labels)
         if compute_result:
