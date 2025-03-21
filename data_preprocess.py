@@ -187,20 +187,21 @@ class DataProcess(object):
             raise ValueError("The dataset file should be a parquet file.")
         dataset_path = os.path.join(self.dataset_dir, dataset_file)
         dataset_df = pd.read_parquet(dataset_path, engine="fastparquet")
-        dataset_df = dataset_df[dataset_df["common_support"] == True]
-        dataset_df = dataset_df[["weibo_id", "text", "opinion"]]
+        dataset_df = dataset_df[dataset_df["agreement_count"] >= 2]
+        dataset_df = dataset_df[["weibo_id", "weibo_content", "agreement_value"]]
         namemapping = {
             "weibo_id": "id",
-            "text": "text",
-            "opinion": "label",
+            "weibo_content": "text",
+            "agreement_value": "label",
         }
+
         dataset_df.rename(columns=namemapping, inplace=True)
         if self.task_type == "binary":
             dataset_df["label"] = dataset_df["label"].apply(
-                lambda x: 1 if x is not None else 0
+                lambda x: 1 if x in [-2, -1, 0, 1, 2] else 0
             )
         else:
-            dataset_df = dataset_df.dropna(subset=["label"])
+            dataset_df = dataset_df[dataset_df["label"] != -99]
         return dataset_df
 
     def get_dataset(self):

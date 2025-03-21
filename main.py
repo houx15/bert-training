@@ -16,9 +16,11 @@ from configs import *
 def run(config):
     if not os.path.exists(output_dir_base):
         os.makedirs(output_dir_base)
+    if not os.path.exists(data_output_dir_base):
+        os.makedirs(data_output_dir_base)
 
     dataset_dir = dataset_base  # os.path.join(dataset_base, f"topic-{config.topic}")
-    output_dir = os.path.join(dataset_base, f"topic-{config.topic}")
+    output_dir = os.path.join(data_output_dir_base, f"topic-{config.topic}")
     data_process = DataProcess(
         dataset_dir=dataset_dir,
         output_dir=output_dir,
@@ -56,21 +58,21 @@ def run(config):
 
     if config.prod:
         opinion_model.prod_train(
-            os.path.join(output_dir_base, config.topic),
-            logging_dir=os.path.join(log_dir_base, config.topic),
+            os.path.join(output_dir_base, f"topic-{config.topic}"),
+            logging_dir=os.path.join(log_dir_base, f"topic-{config.topic}"),
             args=training_args,
         )
     else:
         for i in range(config.repeat_times):
             model_path = opinion_model.train(
-                os.path.join(output_dir_base, config.topic, f"run-{i}"),
-                logging_dir=os.path.join(log_dir_base, config.topic, f"run-{i}"),
+                os.path.join(output_dir_base, f"topic-{config.topic}", f"run-{i}"),
+                logging_dir=os.path.join(log_dir_base, f"topic-{config.topic}", f"run-{i}"),
                 args=training_args,
                 parameter_search=config.parameter_search,
             )
             rmse_dict = opinion_model.evaluate(
                 model_path,
-                logging_dir=os.path.join(log_dir_base, config.topic, f"run-{i}"),
+                logging_dir=os.path.join(log_dir_base, f"topic-{config.topic}", f"run-{i}"),
                 args=training_args,
             )
 
