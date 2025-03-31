@@ -10,6 +10,31 @@ import json
 from sklearn.model_selection import train_test_split
 
 
+def augment_class(df, target_class, target_size):
+    """
+    对指定类别的数据进行扩增，直到样本数量达到目标值。
+    
+    Parameters
+    ----------
+    df : DataFrame
+        输入数据集。
+    target_class : Any
+        要扩增的类别值。
+    target_size : int
+        扩增后的目标样本数量。
+
+    Returns
+    -------
+    augmented_df : DataFrame
+        扩增后的数据集。
+    """
+    class_df = df[df['label'] == target_class]
+    while len(class_df) < target_size:
+        # 随机采样扩增
+        class_df = pd.concat([class_df, class_df.sample(n=target_size - len(class_df), replace=True)])
+    return class_df
+
+
 class DataProcess(object):
     """
     Base class for data process.
@@ -107,6 +132,12 @@ class DataProcess(object):
                 "Error: split_ratio doesn't provide the ratio of train, validate and test dataset"
             )
         print("type", df, type(df))
+
+        value_counts = df['label'].value_counts()
+        for label, count in value_counts.items():
+            if count < 10:
+                augmented_class_df = augment_class(df, label, target_size=10)
+                df = pd.concat([df[df['label'] != label], augmented_class_df])
 
         X = df  # Contains all columns.
         y = df[["label"]]  # Dataframe of just the column on which to stratify.

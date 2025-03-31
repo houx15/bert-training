@@ -11,6 +11,7 @@ from sklearn.metrics import (
     accuracy_score,
     precision_recall_fscore_support,
     mean_squared_error,
+    roc_auc_score
 )
 
 from transformers import (
@@ -55,18 +56,37 @@ class RMSEMetric:
 
 class AccuracyMetric:
     def __init__(self):
-        self.batch_acc = []
+        self.all_probs = []
+        self.all_labels = []
+        self.all_preds = []
 
-    def update(self, preds, target):
+    def update(self, probs, preds, target):
         # calculate accuracy for each batch, use numpy
-        acc = np.mean(preds == target)
-        self.batch_acc.append(acc)
+        self.all_probs.extend(probs.tolist())
+        self.all_labels.extend(target.tolist())
+        self.all_preds.extend(preds.tolist())
+        # with open("accuracy.txt", "a") as f:
+        #     f.write(f"{acc}\n")
+        #     f.write(f"{','.join(preds)}\n")
+        #     f.write(f"{','.join(target)}\n")
 
     def compute(self):
-        # Get result across entire eval set
-        result = {"accuracy": np.mean(self.batch_acc)}
+        overall_accuracy = accuracy_score(self.all_labels, self.all_preds)
+        precision, recall, f1, _ = precision_recall_fscore_support(
+            self.all_labels, self.all_preds, average="binary"
+        )
+        auc = roc_auc_score(self.all_labels, self.all_probs)
+        result = {
+            "accuracy": overall_accuracy,
+            "precision": precision,
+            "recall": recall,
+            "f1": f1,
+            "auc": auc,
+        }
         # Reset batch statistics
-        self.batch_acc = []
+        self.all_probs = []
+        self.all_labels = []
+        self.all_preds = []
         return result
 
 
@@ -172,23 +192,30 @@ class OpinionModel(object):
         dataset = dataset.shuffle()
         return dataset
 
-    def binary_metrics_compute(self, eval_pred, compute_result):
+    def binary_metrics_compute(self, eval_pred):#, compute_result):
         labels = eval_pred.label_ids
         preds = (
             eval_pred.predictions[0]
             if isinstance(eval_pred.predictions, tuple)
             else eval_pred.predictions
         )
-        preds = np.argmax(preds.cpu().numpy(), axis=1)
-        # use when this is 0-1 classification task
-        accuracy_metric.update(preds, labels)
-        if compute_result:
-            return accuracy_metric.compute()
-        # precision, recall, f1, _ = precision_recall_fscore_support(
-        #     labels, preds, average="binary"
-        # )
-        # acc = accuracy_score(labels, preds)
-        # return {"accuracy": acc}
+        probs = preds[:, 1] if preds.ndim > 1 else preds
+        preds = np.argmax(preds, axis=1)
+        # accuracy_metric.update(probs, preds, labels)
+        # if compute_result:
+        #     return accuracy_metric.compute()
+        precision, recall, f1, _ = precision_recall_fscore_support(
+            labels, preds, average="binary"
+        )
+        acc = accuracy_score(labels, preds)
+        auc = roc_auc_score(labels, probs)
+        return {
+            "accuracy": acc,
+            "precision": precision,
+            "recall": recall,
+            "f1": f1,
+            "auc": auc,
+        }
 
     def regression_metrics_compute(self, eval_pred, compute_result):
         preds = (
@@ -272,14 +299,14 @@ class OpinionModel(object):
             output_dir=output_dir,
             overwrite_output_dir=True,
             do_train=True,
-            batch_eval_metrics=True,
+            batch_eval_metrics=True if self.task_type == "regression" else False,
             # load_best_model_at_end=True,
             metric_for_best_model=(
                 "loss" if self.task_type == "regression" else "accuracy"
             ),
-            # eval_accumulation_steps=10,
-            evaluation_strategy="no",
-            # evaluation_strategy="steps" if self.task_type == "regression" else "no",
+            # eval_accumulation_steps=50,
+            # evaluation_strategy="no",
+            evaluation_strategy="steps" if self.task_type == "regression" else "no",
             logging_strategy="steps",
             save_strategy="no",
             logging_steps=5,
@@ -499,9 +526,12 @@ class OpinionModel(object):
                 self.test_df.label.values, prediction, average="binary"
             )
             acc = accuracy_score(self.test_df.label.values, prediction)
+            auc = roc_auc_score(self.test_df.label.values, prediction)
             print(f"acc: {acc}")
             print(f"precision: {precision}")
             print(f"recall: {recall}")
+            print(f"f1: {f1}")
+            print(f"auc: {auc}")
 
             log_file = logging_dir + "log.txt"
             log(log_file, time.asctime(time.localtime(time.time())))

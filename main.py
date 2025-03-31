@@ -56,6 +56,11 @@ def run(config):
         "per_device_eval_batch_size": config.batch_size,
     }
 
+    if default_regression_config is not None and config.task_type == "regression":
+        training_args = default_regression_config
+    if default_binary_config is not None and config.task_type == "binary":
+        training_args = default_binary_config
+
     if config.prod:
         opinion_model.prod_train(
             os.path.join(output_dir_base, f"topic-{config.topic}"),
@@ -90,7 +95,7 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=1)
     parser.add_argument("--force_update", type=bool, default=False)
     parser.add_argument("--prod", type=bool, default=False)
-    parser.add_argument("--repeat_times", type=int, default=1)
+    parser.add_argument("--repeat_times", type=int, default=5)
     parser.add_argument("--parameter_search", type=bool, default=False)
 
     config = parser.parse_args()
