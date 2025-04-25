@@ -72,8 +72,12 @@ class YearDataMerge(object):
         self.cur_year_count = 0
     
     def save(self):
+        output_path = os.path.join(self.output_dir, f"{self.cur_year}-{self.cur_year_count}.parquet")
+        if os.path.exists(output_path):
+            print(f"{output_path} already exists.")
+            raise ValueError(f"{output_path} already exists.")
         combined_df = pd.concat(self.cache_files)
-        combined_df.to_parquet(os.path.join(self.output_dir, f"{self.cur_year}-{self.cur_year_count}.parquet"))
+        combined_df.to_parquet(output_path)
         del combined_df
 
         self.cache_files = []
@@ -216,7 +220,11 @@ def check(topic: str, task_type: str):
                 result += f"{parquet_file} has na in relevance\n"
         if task_type == "regression":
             # relevance == 1 & opinion == na
-            assert "opinion" in df.columns
+            try:
+                assert "opinion" in df.columns
+            except AssertionError:
+                result += f"{parquet_file} does not have opinion column\n"
+                continue
             if df.loc[df["relevance"] == 1, "opinion"].isna().any():
                 result += f"{parquet_file} has different count of relevance and opinion\n"
     
@@ -224,4 +232,10 @@ def check(topic: str, task_type: str):
 
 
 if __name__ == "__main__":
-    fire.Fire(merge)
+    fire.Fire(
+        {
+            "merge": merge,
+            "recover": recover_merged_data_to_daily_parquet,
+            "check": check
+        }
+    )
